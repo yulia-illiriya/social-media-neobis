@@ -1,5 +1,5 @@
 from django.db import models
-from user.managers import UserManager
+from user_profile.managers import UserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.utils.translation import gettext_lazy as _ 
@@ -30,7 +30,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         
 class UserProfile(models.Model):
     
-    """Профиль пользователя (создается автоматически при создании юзера). 
+    """
+    Профиль пользователя (создается автоматически при создании юзера). 
     Из полей автоматически заполяется только юзернейм.
     Основным ключом является поле user
     """

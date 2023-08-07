@@ -1,7 +1,7 @@
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 
-from user.models import UserProfile
+from user_profile.models import UserProfile
 from django.contrib.auth import get_user_model
 
 User = get_user_model()

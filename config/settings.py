@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
     
-    'user',
+    'user_profile',
 ]
 
 MIDDLEWARE = [
@@ -106,7 +106,7 @@ SIMPLE_JWT = {
    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-AUTH_USER_MODEL = 'user.User'
+AUTH_USER_MODEL = 'user_profile.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -122,6 +122,13 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config('EMAIL_HOST')  # Адрес SMTP-сервера Yandex Mail
+EMAIL_PORT = 587  # Порт SMTP-сервера Yandex Mail (обычно 587)
+EMAIL_USE_TLS = True  # Используйте TLS для безопасной передачи
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')  # Адрес Yandex Mail аккаунта отправителя
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 
 
 # Internationalization
@@ -145,3 +152,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
