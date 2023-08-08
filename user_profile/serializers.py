@@ -27,3 +27,17 @@ class UserSerializer(serializers.ModelSerializer):
             username=validated_data['username']
         )
         return user
+    
+    
+class PasswordResetEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    
+
+class OTPSerializer(serializers.Serializer):    
+    code = serializers.RegexField(r'^\d{4}$')
+    
+
+class PasswordResetSerializer(serializers.Serializer):
+    
+    new_passsword = serializers.CharField(min_length=8)
+    confirm_password = serializers.CharField(min_length=8)
