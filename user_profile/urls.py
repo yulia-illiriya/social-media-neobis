@@ -6,13 +6,14 @@ from .views import (
     EnterOTPCodeView,
     UpdatePasswordView,
     RememberMeTokenRefreshView,
-    LogoutView
+    LogoutView,
+    ProfileAPIViewList
     )
 
 
-
 urlpatterns = [
-    path('profile/', ProfileAPIView.as_view(), name="profile"),
+    path('profile/', ProfileAPIViewList.as_view(), name="profile_list"), #только на время тестирования приложения
+    path('profile/<int:pk>/', ProfileAPIView.as_view(), name="profile"),
     path('register/', UserViewSet.as_view({'post': 'create'}), name='register'),
     path('users/<int:pk>/', UserViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update'}), name='user-detail'),
     path('forgot_password/', SendPasswordResetEmailView.as_view(), name="forgot_password"),

@@ -30,6 +30,11 @@ from config import settings
 from django.core.cache import cache
 
 
+class ProfileAPIViewList(generics.ListAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = ProfileSerializer
+    
+
 class ProfileAPIView(generics.RetrieveUpdateAPIView):
     queryset = UserProfile.objects.all()
     serializer_class = ProfileSerializer
