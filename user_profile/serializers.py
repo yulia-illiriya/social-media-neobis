@@ -1,5 +1,8 @@
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 from .models import User, UserProfile
+from config import settings
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,3 +44,15 @@ class PasswordResetSerializer(serializers.Serializer):
     
     new_passsword = serializers.CharField(min_length=8)
     confirm_password = serializers.CharField(min_length=8)
+    
+    
+class RememberMeTokenObtainPairSerializer(TokenObtainPairSerializer):
+    remember_me = serializers.BooleanField(required=False)
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        if self.validated_data.get('remember_me'):
+            self.user.remember_me = True
+            self.user.save()
+        return data
+    

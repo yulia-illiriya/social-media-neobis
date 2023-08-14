@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import datetime
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -42,6 +43,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'drf_yasg',
     
     'user_profile',
 ]
@@ -78,6 +81,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -106,9 +111,24 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
    'AUTH_HEADER_TYPES': ('Bearer',),
+   'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=1),
+   'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=14)
 }
 
+
 AUTH_USER_MODEL = 'user_profile.User'
+
+PASSWORD_RESET_TOKEN_EXPIRY_SECONDS = 10800
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',  # Укажите адрес и порт Redis сервера
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -129,7 +149,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST')  # Адрес SMTP-сервера Yandex Mail
 EMAIL_PORT = 587  # Порт SMTP-сервера Yandex Mail (обычно 587)
 EMAIL_USE_TLS = True  # Используйте TLS для безопасной передачи
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')  # Адрес Yandex Mail аккаунта отправителя
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')  # Адрес 
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 
 
