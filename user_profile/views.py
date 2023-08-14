@@ -13,6 +13,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.exceptions import APIException
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError, APIException
 
 from drf_yasg.utils import swagger_auto_schema
 
@@ -22,9 +23,10 @@ from user_profile.serializers import (
                                     PasswordResetEmailSerializer,
                                     PasswordResetSerializer,
                                     OTPSerializer,
-                                    RememberMeTokenObtainPairSerializer
+                                    RememberMeTokenObtainPairSerializer,
+                                    
                                     )
-from user_profile.models import UserProfile, User
+from user_profile.models import UserProfile, User, PasswordReset
 from config import settings
 
 from django.core.cache import cache
@@ -71,32 +73,36 @@ class SendPasswordResetEmailView(APIView):
         serializer = PasswordResetEmailSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
-            user = User.objects.get(email=email)
-
-            if user:
+            
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                raise ValidationError("User with this email wasn't found.")
+            
+            
+            while True:
                 code = random.randint(1000, 9999)
 
-                # Save the code and email in the session
-                request.session['password_reset_code'] = code
-                request.session['password_reset_email'] = email
+                if not PasswordReset.objects.filter(code=code).exists():
+                    break 
+                                            
+            PasswordReset.objects.create(email=email, code=code)            
 
-                # Send the code to the user's email
-                subject = 'Password Reset Code'
-                message = f'Ваш код сброса пароля - {code}'
-                from_email = settings.EMAIL_HOST_USER
-                recipient_list = [email]
-                send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+                
+            subject = 'Password Reset Code'
+            message = f'Ваш код сброса пароля - {code}'
+            from_email = settings.EMAIL_HOST_USER
+            recipient_list = [email]
+            send_mail(subject, message, from_email, recipient_list, fail_silently=False)
 
-                next_page = reverse('verify')
+            next_page = reverse('verify')
 
-                response_data = {
-                    'message': 'Password reset code sent successfully.',
+            response_data = {
+                    'message': 'Password reset code sent successfully. Check your email',
                     'next_page': next_page
                 }
 
-                return Response(response_data, status=status.HTTP_200_OK)
-            else:
-                return Response({'error': 'Такой пользователь не найден. Пожалуйста, проверьте введенные данные'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(response_data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -110,26 +116,28 @@ class EnterOTPCodeView(APIView):
         }
     )
     def post(self, request, *args, **kwargs):
-        serializer = OTPSerializer(data=request.data)
-        if serializer.is_valid():
-            code = serializer.validated_data['code']
-
-            # Get the code and email from the session
-            code_from_session = self.request.session.get('password_reset_code')
-            email_from_session = self.request.session.get('password_reset_email')
-
-            if code_from_session == code and email_from_session:
-                next_page = reverse('reset-password')
-                response_data = {
+        data = request.data        
+        
+        password_reset = PasswordReset.objects.filter(code=data['code']).first()
+        
+        if not password_reset or data['code'] != password_reset.code:
+            raise APIException('Код подтверждения неверен. Проверьте корректность данных', status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=password_reset.email)
+        except User.DoesNotExist:
+            raise ValidationError("User with this email wasn't found", status=status.HTTP_400_BAD_REQUEST)
+        
+        next_page = reverse('reset-password')
+        user_id = user.pk
+        
+        response_data = {
                     'message': 'Запрос подтвержден',
-                    'next_page': next_page
+                    'next_page': next_page,
+                    "user_id": user_id
                 }
 
-                return Response(response_data, status=status.HTTP_200_OK)
-            else:
-                return Response({'error': 'Неправильный код сброса'}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class UpdatePasswordView(APIView):
@@ -141,27 +149,20 @@ class UpdatePasswordView(APIView):
         }
     )
     def post(self, request, *args, **kwargs):
+        data = request.data
+        user_id = data.get('user_id')
+        user = User.objects.get(user_id)   
+        
         serializer = PasswordResetSerializer(data=request.data)
+
         if serializer.is_valid():
-            new_password = serializer.validated_data['new_password']
-            confirm_password = serializer.validated_data['confim_password']
-            email_from_session = self.request.session.get('password_reset_email')
-            user = User.objects.get(email=email_from_session)
+            if data['new_password'] != data['confirm_password']:
+                return Response({"password": "Password fields didn't match."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user.set_password(data['new_password'])
+            user.save()
 
-            if user:
-                if new_password == confirm_password:
-                    user.set_password(new_password)
-                    user.save()
-
-                    # Clear the session after password update
-                    del self.request.session['password_reset_code']
-                    del self.request.session['password_reset_email']
-
-                    return Response({'message': 'Пароль успешно изменен'}, status=status.HTTP_200_OK)
-                else:
-                    return Response({'error': 'Пароли не совпадают'}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({'error': 'Пользователь не найден'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -172,7 +173,8 @@ class RememberMeTokenRefreshView(TokenRefreshView):
     
     serializer_class = RememberMeTokenObtainPairSerializer
     
-    def post(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):        
+        
         try:
             remember = request.data['remember_me']
             if remember:
