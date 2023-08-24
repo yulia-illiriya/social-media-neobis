@@ -1,15 +1,36 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import User, UserProfile, PasswordReset
+from .models import User, UserProfile, Follower
 from config import settings
+from rest_framework.exceptions import ValidationError
+from django.core.files.images import get_image_dimensions
 
 
+    
 
 class ProfileSerializer(serializers.ModelSerializer):
+    number_of_followers = serializers.ReadOnlyField()
+    photo = serializers.ImageField(required=False, allow_null=True)
+    
+    def validate_photo(self, photo):
+        if photo:
+            filesize = photo.size    
+
+            if filesize > 15 * 1024 * 1024:
+                raise ValidationError(f"Размер файла не должен превышать 15 Мб")
+        
+        return photo
+    
     class Meta:
         model = UserProfile
-        fields = '__all__'
+        fields = ['user', 'username', 'name', 'photo', 'bio', 'is_private', 'number_of_followers', 'number_of_following']
+        
+        
+class SimpleProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['username', 'name', 'photo',]
         
         
 class UserSerializer(serializers.ModelSerializer):
@@ -63,4 +84,85 @@ class RememberMeTokenObtainPairSerializer(TokenObtainPairSerializer):
             user.remember_me = True
             user.save()
         return data
+
+
+
+class UserFollowSerializer(serializers.ModelSerializer):
+    follows = serializers.CharField(source='follows.username')
+    follower = serializers.CharField(source='user.username')
+    class Meta:
+        model = Follower
+        fields = [ "pending_request", "created_at", "follows", 'follower']
+        
+
+class FollowSerializer(serializers.ModelSerializer):
+    follows = serializers.CharField(source='follows.username')
+    class Meta:
+        model = Follower
+        fields = [ "follows",]
+        
+        
+class FollowerSerializer(serializers.ModelSerializer):
+    followers = serializers.CharField(source='user.username')
+    class Meta:
+        model = Follower
+        fields = [ "followers",]
+
+   
+# class FollowerSerializer(serializers.ModelSerializer):
+#     followers = serializers.IntegerField()
     
+#     class Meta:
+#         model = Follower
+#         fields = ("followers", "created_at")
+        
+#     def create(self, validated_data):
+#         followers = validated_data.get('followers')
+#         user = self.context['request'].user
+
+#         pending_request = False if UserProfile.objects.get(user=followers).is_private else True
+
+#         follower_data = {
+#             'followed_user': user,
+#             'followers': followers,
+#             'pending_request': pending_request
+#         }
+        
+#         return Follower.objects.create(**follower_data)
+
+
+        
+        
+# class FollowingSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Follower
+#         fields = ("followers", "created_at")
+        
+        
+# class ProfileFollowSerializer(serializers.ModelSerializer):
+    
+#     followers = serializers.SerializerMethodField()
+    
+#     def get_followers(self, obj):
+#         return FollowerSerializer(obj.followed.all(), many=True).data
+    
+#     class Meta:
+#         model = UserProfile
+#         fields = ['followers',]
+        
+        
+# class ProfileSubscriptionSerializer(serializers.ModelSerializer):
+    
+#     following = serializers.SerializerMethodField()
+    
+#     def get_following(self, obj):
+#         return FollowerSerializer(obj.followers.all(), many=True).data
+    
+#     class Meta:
+#         model = UserProfile
+#         fields = ['following',]
+        
+        
+# class PendingRequestSerializer(serializers.Serializer):
+#     pending_request = serializers.CharField()
+#     potential_followers = 

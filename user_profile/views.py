@@ -1,8 +1,9 @@
 import random
 from datetime import timedelta, timezone
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.core.mail import send_mail
 from django.urls import reverse
+from django.core.exceptions import ObjectDoesNotExist
 
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -14,6 +15,13 @@ from rest_framework.exceptions import APIException
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError, APIException
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
+from dj_rest_auth.registration.serializers import SocialLoginSerializer
+from dj_rest_auth.registration.views import SocialLoginView
+
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 
 from drf_yasg.utils import swagger_auto_schema
 
@@ -24,9 +32,12 @@ from user_profile.serializers import (
                                     PasswordResetSerializer,
                                     OTPSerializer,
                                     RememberMeTokenObtainPairSerializer,
-                                    
+                                    UserFollowSerializer,
+                                    SimpleProfileSerializer,
+                                    FollowerSerializer,
+                                    FollowSerializer
                                     )
-from user_profile.models import UserProfile, User, PasswordReset
+from user_profile.models import UserProfile, User, PasswordReset, Follower
 from config import settings
 
 from django.core.cache import cache
@@ -40,6 +51,7 @@ class ProfileAPIViewList(generics.ListAPIView):
 class ProfileAPIView(generics.RetrieveUpdateAPIView):
     queryset = UserProfile.objects.all()
     serializer_class = ProfileSerializer
+    # lookup_field = 'username'
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -161,6 +173,8 @@ class UpdatePasswordView(APIView):
             
             user.set_password(data['new_password'])
             user.save()
+            
+            PasswordReset.objects.get(email=user.email).delete()            
 
             return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)
 
@@ -184,3 +198,280 @@ class RememberMeTokenRefreshView(TokenRefreshView):
  
         return super().post(request, *args, **kwargs)
 
+
+class GoogleLoginView(SocialLoginView):
+    
+    """
+    Используется для входа через гугл аккаунт
+    """
+    
+    adapter_class = GoogleOAuth2Adapter
+    client_class = OAuth2Client
+    serializer_class = SocialLoginSerializer
+    
+    def get_serializer(self, *args, **kwargs):
+        serializer_class = self.get_serializer_class()
+        kwargs['context'] = self.get_serializer_context()
+        return serializer_class(*args, **kwargs)
+    
+    
+
+class FollowUserView(APIView):
+    
+    """Можно подписаться и отписаться, а также посмотреть список активных подписок"""
+    
+    queryset = Follower.objects.all()
+    serializer_class = UserFollowSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        following = Follower.objects.filter(user=request.user, pending_request=True)
+        followers = Follower.objects.filter(follows=request.user, pending_request=True)
+
+        following_serializer = UserFollowSerializer(following, many=True)
+        followers_serializer = UserFollowSerializer(followers, many=True)
+        return Response({ "success": True, "following": following_serializer.data, "followers": followers_serializer.data })
+
+
+    def post(self, request, pk):
+        try:
+            following_user = User.objects.get(id=pk)
+            is_private = following_user.userprofile.is_private #определяем, профиль приватный или публичный
+            follow_user, _ = Follower.objects.get_or_create(user=request.user, follows=following_user)
+            if not _:
+                follow_user.delete()
+                return Response({ "success": True, "message": "unfollowed user" })
+            else:
+                print(follow_user)
+                if not is_private:
+                    follow_user.pending_request = True
+                    follow_user.save()
+                    return Response({ "success": True, "message": "followed user" })
+                else:
+                    follow_user.pending_request = False
+                    follow_user.save()
+                    return Response({ "success": True, "message": "request was sent!" })
+
+
+        except ObjectDoesNotExist:
+            return Response({ "success": False, "message": "following user does not exist" })
+    
+    
+class FollowView(APIView):
+    
+    """Посмотреть свои подписки"""
+    
+    queryset = Follower.objects.all()
+    serializer_class = FollowSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        following = Follower.objects.filter(user=request.user, pending_request=True)
+        # followers = Follower.objects.filter(follows=request.user, pending_request=True)
+
+        following_serializer = FollowSerializer(following, many=True)
+        # followers_serializer = UserFollowSerializer(followers, many=True)
+        return Response({ "success": True, "following": following_serializer.data})
+    
+
+class FollowerView(APIView):
+    
+    """Посмотреть свои подписки"""
+    
+    queryset = Follower.objects.all()
+    serializer_class = FollowerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        followers = Follower.objects.filter(follows=request.user, pending_request=True)
+        
+        followers_serializer = FollowerSerializer(followers, many=True)
+        return Response({ "success": True, "following": followers_serializer.data})
+
+
+class RequestUserView(APIView):
+    
+    """
+    Вью для одобрения подписок от приватного профиля.
+    В запрос на одобрение передаем айди профиля (который хочет подписаться),
+    и либо accept, либо decline
+    
+    """
+    
+    queryset = Follower.objects.all()
+    serializer_class = UserFollowSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        pending_requests = Follower.objects.filter(follows=request.user, pending_request=False)
+        pending_serializer = UserFollowSerializer(pending_requests, many=True)
+        
+        return Response({ "requests": pending_serializer.data })
+    
+    def put(self, request, pk=None, action=None):
+        try:
+            follow_user = User.objects.get(id=pk)
+            if follow_user == request.user:
+                return Response({"message": "You can't be your own follower"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            pending_request = Follower.objects.get(follows=request.user, user=follow_user)
+            
+            if action=='accept':
+                pending_request.pending_request=True
+                pending_request.save()
+                return Response({'status': "accepted"}, status=status.HTTP_200_OK)
+            else:
+                pending_request.delete()
+                print(Follower.objects.filter(follows=request.user, user=follow_user))
+                return Response({ "status": "request deleted", "message": "request declined" })
+
+        except ObjectDoesNotExist:
+            return Response({ "success": False, "message": "following user does not exist" })
+
+
+# class FollowUnfollowView(viewsets.ModelViewSet):
+    
+#     """Вью для добавления подписок"""
+
+#     permission_classes = (IsAuthenticatedOrReadOnly,)
+#     serializer_class = FollowerSerializer
+#     queryset = Follower.objects.all()    
+    
+    # def list(self):
+    #     serializer = FollowerSerializer
+    #     queryset = Follower.objects.all()  
+    #     return Response(serializer.data)  
+   
+
+# class PendingRequestViewSet(APIView):
+    
+#     """
+#     Вью для одобрения или отклонения запросов на подписку
+#     """    
+#     # permission_classes = (IsAuthenticated,)
+
+#     def list(self, request):
+#         user = self.request.user
+#         follower_profiles = UserProfile.objects.filter(user__followed__followers__user=user, followers__pending_request=False)     
+#         serialized_profiles = SimpleProfileSerializer(follower_profiles, many=True)
+#         return Response(serialized_profiles.data)
+
+#     def accept(self, request, pk=None):
+#         try:
+#             pending_request = Follower.objects.get(pk=pk, followed_user=request.user, pending_request=False)
+#             pending_request.pending_request = True
+#             pending_request.save()
+#             return Response({"message": "Request accepted"}, status=status.HTTP_200_OK)
+#         except Follower.DoesNotExist:
+#             return Response({"error": "Pending request not found"}, status=status.HTTP_404_NOT_FOUND)
+
+#     def decline(self, request, pk=None):
+#         try:
+#             pending_request = Follower.objects.get(pk=pk, followed_user=request.user, pending_request=False)
+#             pending_request.delete()
+#             return Response({"message": "Request declined"}, status=status.HTTP_204_NO_CONTENT)
+#         except Follower.DoesNotExist:
+#             return Response({"error": "Pending request not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        
+# class DeclineRequestView(generics.DestroyAPIView):
+#     queryset = Follower.objects.all()
+#     serializer_class = FollowerSerializer
+
+# class PendingRequestView(viewsets.ViewSet):
+#     """
+#     Вью для просмотра заявок на подписку для приватных профилей.
+#     В метод update передаем дополнительно id
+#     """
+    
+#     serializer_class = SimpleProfileSerializer
+#     permission_classes = [IsAuthenticated]
+    
+#     def list(self, request):
+#         user_profile = UserProfile.objects.get(user=request.user)
+#         if user_profile.is_private:
+#             who_want_to_follow = UserProfile.objects.filter(
+#                 user__followed__followers=request.user,
+#                 user__followed__pending_request=False
+#             )
+#             serialized_profiles = self.serializer_class(who_want_to_follow, many=True)
+#             return Response(serialized_profiles.data)
+#         else:
+#             return Response([])
+        
+#     def update(self, request, follower_id):        
+        
+#         user_profile = UserProfile.objects.get(user=request.user)
+#         follower = Follower.objects.get(followed_user_id=follower_id, followers=user_profile.user)
+#         follower.pending_request = True
+#         follower.save()
+#         return Response({"message": "Request accepted."})
+
+
+# class UserFollowersViewSet(viewsets.ViewSet):
+    
+#     """
+#     Вью для просмотра тех, кто подписан на юзера. Смотрим только свои подписки!
+#     Юзер берется из реквеста
+    
+#     """
+    
+#     serializer_class = SimpleProfileSerializer
+#     permission_classes = [IsAuthenticated,]  # Только аутентифицированные пользователи
+    
+
+#     def get_queryset(self):
+#         user_profile = UserProfile.objects.get(user=self.request.user)
+#         return UserProfile.objects.filter(
+#                 user__followed__followers=self.request.user,
+#                 user__followed__pending_request=True
+#             )
+        
+#     def retrieve(self, request, follower_id, *args, **kwargs):
+#         try:
+#             user_profile = UserProfile.objects.get(user=request.user)
+#             follower = Follower.objects.get(followed_user_id=follower_id, followers=user_profile.user)
+#             serialized_follower = self.serializer_class(follower)
+#             return Response(serialized_follower.data)
+#         except Follower.DoesNotExist:
+#             return Response({"message": "Follower not found."}, status=status.HTTP_404_NOT_FOUND)
+            
+
+#     def destroy(self, request, follower_id, *args, **kwargs):
+#         try:
+#             user_profile = UserProfile.objects.get(user=request.user)
+#             follower = Follower.objects.get(followed_user_id=follower_id, followers=user_profile.user)
+#             follower.delete()
+#             return Response(status=status.HTTP_204_NO_CONTENT)
+#         except Follower.DoesNotExist:
+#             return Response({"message": "Follower not found."}, status=status.HTTP_404_NOT_FOUND)
+    
+# class UserFollowersView(APIView):
+    
+#     def get(self, request):
+#         user = self.request.user
+#         user_profile = UserProfile.objects.get(user=request.user)   
+        
+#         who_follows = UserProfile.objects.filter(
+#                 user__followed__followers=user, 
+#                 user__followed__pending_request=True
+#                 )
+#         serialized_profiles = SimpleProfileSerializer(who_follows, many=True)
+#         if user_profile.is_private == False:            
+#                 return Response(serialized_profiles.data)
+#         else:
+#             who_want_to_follow = UserProfile.objects.filter(
+#                 user__followed__followers=user, 
+#                 user__followed__pending_request=False
+#                 )
+        
+
+    
+    
+    
+#     # .annotate(
+#     #         has_pending_request=Case(
+#     #             When(user__followed_by__followers__pending_request=True, then=Value(True)),
+#     #             default=Value(False),
+#     #             output_field=BooleanField()
+    

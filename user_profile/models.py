@@ -43,10 +43,11 @@ class UserProfile(models.Model):
     username = models.CharField(_('Username'))
     name = models.CharField("Name", max_length=100)
     surname = models.CharField("Surname", max_length=100)
-    photo = models.ImageField(upload_to='users/%Y/%m/%d/', blank=True)
-    bio = models.CharField(_('Bio'), max_length=500)
+    photo = models.ImageField(upload_to='users/%Y/%m/%d/', blank=True, null=True)
+    bio = models.CharField(_('Bio'), max_length=500, null=True, blank=True)
     is_private = models.BooleanField(_('Private'), default=False)
-    number_of_followers = models.IntegerField(_("Number_of_followers"), default=0)
+    number_of_followers = models.PositiveIntegerField(_("Number_of_followers"), default=0)
+    number_of_following = models.PositiveBigIntegerField(_("Following"), default=0)
 
     def __str__(self):
         return f"{self.username}"
@@ -61,6 +62,31 @@ class PasswordReset(models.Model):
     """Модель используется только для сброса пароля"""
     
     email = models.CharField(max_length=255)
-    code = models.IntegerField(unique=True)
+    code = models.SmallIntegerField(unique=True)
+    
+    
+class Follower(models.Model):
+    
+    """
+    Промежуточная модель, которая позволяет подписываться. 
+    Поле request необходимо для подписки на приватные профили.
+    В положении False оно значит, что реквест не принят.
+    """
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Who follow", related_name="followed", default=None, null=True, blank=True)
+    follows = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="To follow", related_name="follow", default=None, null=True, blank=True)
+    pending_request = models.BooleanField("Follow request", default=True) #если юзер не приватный, то реквест как будто сразу принят
+    created_at = models.DateTimeField("Follow from...", auto_now_add=True, db_index=True)
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user','follows'],  name="unique_followers")
+        ]
 
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} follows {self.follows}"
+    
+    
 
