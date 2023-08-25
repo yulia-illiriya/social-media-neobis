@@ -26,6 +26,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),    
     path('api/login/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/user/', include('user_profile.urls')),    
+    path('api/thread/', include('threads.urls'))
 ]
 
 urlpatterns += swagger_urls

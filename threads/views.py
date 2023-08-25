@@ -23,6 +23,13 @@ class ThreadView(generics.ListAPIView):
         queryset = Thread.objects.filter(author__in=following_authors)
         return queryset
     
+    
+class CreateThreadView(generics.CreateAPIView):
+    
+    permission_classes = [IsAuthenticated,]
+    serializer_class = ThreadSerializer
+    queryset = Thread.objects.all()
+    
 
 class AllFeedView(generics.ListAPIView):
     
@@ -31,7 +38,10 @@ class AllFeedView(generics.ListAPIView):
     """
     
     serializer_class = ThreadSerializer
-    queryset = Thread.objects.all()
+    
+    def get_queryset(self):
+        queryset = Thread.objects.exclude(author__userprofile__is_private=True)
+        return queryset
 
 
 

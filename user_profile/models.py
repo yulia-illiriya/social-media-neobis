@@ -45,7 +45,7 @@ class UserProfile(models.Model):
     surname = models.CharField("Surname", max_length=100)
     photo = models.ImageField(upload_to='users/%Y/%m/%d/', blank=True, null=True)
     bio = models.CharField(_('Bio'), max_length=500, null=True, blank=True)
-    is_private = models.BooleanField(_('Private'), default=False)
+    is_private = models.BooleanField(_('Private'), default=False, db_index=True)
     number_of_followers = models.PositiveIntegerField(_("Number_of_followers"), default=0)
     number_of_following = models.PositiveBigIntegerField(_("Following"), default=0)
 

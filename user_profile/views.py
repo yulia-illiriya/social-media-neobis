@@ -276,7 +276,7 @@ class FollowView(APIView):
 
 class FollowerView(APIView):
     
-    """Посмотреть свои подписки"""
+    """Посмотреть своих подписчиков"""
     
     queryset = Follower.objects.all()
     serializer_class = FollowerSerializer
@@ -289,7 +289,7 @@ class FollowerView(APIView):
         return Response({ "success": True, "following": followers_serializer.data})
 
 
-class RequestUserView(APIView):
+class RequestUserListView(APIView):
     
     """
     Вью для одобрения подписок от приватного профиля.
@@ -307,7 +307,21 @@ class RequestUserView(APIView):
         pending_serializer = UserFollowSerializer(pending_requests, many=True)
         
         return Response({ "requests": pending_serializer.data })
+
+
+class RequestUserView(APIView):
     
+    """
+    Вью для одобрения подписок от приватного профиля.
+    В запрос на одобрение передаем айди профиля (который хочет подписаться),
+    и либо accept, либо decline
+    
+    """
+    
+    queryset = Follower.objects.all()
+    serializer_class = UserFollowSerializer
+    permission_classes = [IsAuthenticated]
+
     def put(self, request, pk=None, action=None):
         try:
             follow_user = User.objects.get(id=pk)

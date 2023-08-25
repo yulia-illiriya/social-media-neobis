@@ -13,10 +13,12 @@ class PhotoSerializer(serializers.ModelSerializer):
 class ThreadSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField()
     photo = PhotoSerializer(many=True, read_only=True, source='photo_set')
+    likes = serializers.ReadOnlyField()
     
     class Meta:
         model = Thread
         fields = ("content", "author", "photo", "video", "created", "likes")
+        ordering = ["-created"]
         
     def create(self, validated_data):
         
@@ -36,7 +38,7 @@ class ThreadSerializer(serializers.ModelSerializer):
     
 class QuoteSerializer(serializers.ModelSerializer):
     thread = ThreadSerializer(read_only=True)
-    who_quoted = serializers.HiddenField(read_only=True, default=serializers.CurrentUserDefault())    
+    who_quoted = serializers.HiddenField(default=serializers.CurrentUserDefault())    
     
     class Meta:
         model = Quote

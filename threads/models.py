@@ -8,7 +8,7 @@ class Thread(models.Model):
     video = models.URLField("Видео", null=True, blank=True)  
     likes = models.PositiveBigIntegerField("Лайки", blank=True, null=True, default=0)
     created = models.DateTimeField("Время поста", auto_now_add=True)
-    repost = models.ForeignKey("Thread", verbose_name="Repost", on_delete=models.CASCADE)    
+    repost = models.ForeignKey("Thread", verbose_name="Repost", on_delete=models.CASCADE, null=True, blank=True)    
     
     def __str__(self):
         return self.content

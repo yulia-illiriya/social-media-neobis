@@ -13,7 +13,8 @@ from .views import (
     FollowUserView,
     RequestUserView,
     FollowView,
-    FollowerView
+    FollowerView,
+    RequestUserListView,
     # UserFollowersViewSet,
     # PendingRequestView,
     # FollowUnfollowView
@@ -35,7 +36,7 @@ urlpatterns = [
     path('google/', GoogleLoginView.as_view(),  name='google'),
     path('follow/', FollowUserView.as_view(), name='follow'),
     path('follow/<int:pk>/', FollowUserView.as_view(), name='follow'),
-    path('pending-requests/', RequestUserView.as_view(), name='requests'),
+    path('pending-requests/', RequestUserListView.as_view(), name='requests'),
     path('pending-requests/<int:pk>/<str:action>/', RequestUserView.as_view(), name='accept'),
     path('who-following-by-me/', FollowView.as_view(), name='following'),
     path('who-follow-me/', FollowerView.as_view(), name="follow-me")
