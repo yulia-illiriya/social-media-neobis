@@ -94,6 +94,13 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': config('CLOUD_NAME'),
+    'API_KEY': config('CLOUD_API_KEY'),
+    'API_SECRET': config('CLOUD_API_SECRET'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -145,6 +152,9 @@ AUTH_USER_MODEL = 'user_profile.User'
 
 PASSWORD_RESET_TOKEN_EXPIRY_SECONDS = 10800
 
+# SERVER_EMAIL = EMAIL_HOST_USER
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
@@ -175,7 +185,27 @@ EMAIL_HOST = config('EMAIL_HOST')  # Адрес SMTP-сервера Yandex Mail
 EMAIL_PORT = 587  # Порт SMTP-сервера Yandex Mail (обычно 587)
 EMAIL_USE_TLS = True  # Используйте TLS для безопасной передачи
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')  # Адрес 
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+EMAIL_HOST_PASSWORD = config('YANDEX_PASS')
+# EMAIL_HOST_USER = 'your_email@yandex.ru'
+# EMAIL_HOST_PASSWORD = 'your_yandex_smtp_password'
+
+DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER') 
+SERVER_EMAIL = config('EMAIL_HOST_USER') 
+EMAIL_ADMIN = config('EMAIL_HOST_USER')
+
+
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# EMAIL_HOST = 'smtp.yandex.ru'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+
+# EMAIL_HOST_USER = 'nerozniksilliriya@yandex.ru'
+# EMAIL_HOST_PASSWORD = 'chhzcbjxzngwwkzc'
+
+# EMAIL_SERVER = EMAIL_HOST_USER
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# EMAIL_ADMIN = EMAIL_HOST_USER
 
 
 # Internationalization
@@ -201,3 +231,10 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+# send_mail(
+#     'Test Subject',
+#     'Test message body',
+#     'nerozniksilliriya@yandex.ru',
+#     ['yulia.illiriya@gmail.com'],
+#     fail_silently=False,
+#     )
