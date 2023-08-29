@@ -53,9 +53,10 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_yasg',
+    "corsheaders",
     
     'user_profile',
-    'threads',
+    'threads',    
 ]
 
 SITE_ID = 1
@@ -68,6 +69,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -186,26 +189,10 @@ EMAIL_PORT = 587  # Порт SMTP-сервера Yandex Mail (обычно 587)
 EMAIL_USE_TLS = True  # Используйте TLS для безопасной передачи
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')  # Адрес 
 EMAIL_HOST_PASSWORD = config('YANDEX_PASS')
-# EMAIL_HOST_USER = 'your_email@yandex.ru'
-# EMAIL_HOST_PASSWORD = 'your_yandex_smtp_password'
 
 DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER') 
 SERVER_EMAIL = config('EMAIL_HOST_USER') 
 EMAIL_ADMIN = config('EMAIL_HOST_USER')
-
-
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
-# EMAIL_HOST = 'smtp.yandex.ru'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-
-# EMAIL_HOST_USER = 'nerozniksilliriya@yandex.ru'
-# EMAIL_HOST_PASSWORD = 'chhzcbjxzngwwkzc'
-
-# EMAIL_SERVER = EMAIL_HOST_USER
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-# EMAIL_ADMIN = EMAIL_HOST_USER
 
 
 # Internationalization
@@ -230,6 +217,18 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
+
+
+CORS_ALLOWED_ORIGINS = ['*']
+CSRF_TRUSTED_ORIGINS = ['*']
 
 # send_mail(
 #     'Test Subject',
