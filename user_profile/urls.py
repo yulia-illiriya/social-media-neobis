@@ -15,6 +15,7 @@ from .views import (
     FollowView,
     FollowerView,
     RequestUserListView,
+    ProfileDetailAPIView,
     # UserFollowersViewSet,
     # PendingRequestView,
     # FollowUnfollowView
@@ -25,8 +26,10 @@ router = DefaultRouter()
 
 urlpatterns = [
     path('profile/', ProfileAPIViewList.as_view(), name="profile_list"), #только на время тестирования приложения
-    path('profile/<int:pk>/', ProfileAPIView.as_view(), name="profile"),
+    path('me/', ProfileAPIView.as_view(), name='my-profile'),
+    path('profile/<str:username>/', ProfileDetailAPIView.as_view(), name="profile"),
     path('register/', UserViewSet.as_view({'post': 'create'}), name='register'),
+    path('users/', UserViewSet.as_view({'get': 'list'}), name='user-all'),
     path('users/<int:pk>/', UserViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update'}), name='user-detail'),
     path('forgot_password/', SendPasswordResetEmailView.as_view(), name="forgot_password"),
     path('otp_verificaton/', EnterOTPCodeView.as_view(), name='verify'),

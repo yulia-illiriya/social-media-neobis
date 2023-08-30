@@ -16,6 +16,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError, APIException
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework import filters
 
 from dj_rest_auth.registration.serializers import SocialLoginSerializer
 from dj_rest_auth.registration.views import SocialLoginView
@@ -45,14 +46,46 @@ from django.core.cache import cache
 
 class ProfileAPIViewList(generics.ListAPIView):
     queryset = UserProfile.objects.all()
+    filter_backends = [filters.SearchFilter]
     serializer_class = ProfileSerializer
+    search_fields = ['username',]    
     
 
-class ProfileAPIView(generics.RetrieveUpdateAPIView):
-    queryset = UserProfile.objects.all()
+class ProfileDetailAPIView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated,]
     serializer_class = ProfileSerializer
-    # lookup_field = 'username'
+    lookup_field = 'username'
+    
+    queryset = UserProfile.objects.all()  # Set the queryset to fetch all profiles
 
+    def get_queryset(self):
+        return self.queryset.filter(username=self.kwargs[self.lookup_field])
+
+class ProfileAPIView(APIView):
+    
+    """
+    Модель для вывода и обновления профиля. Ничего в нее передавать не надо, 
+    юзер берется из запроса и выводится его личный профиль
+    """
+    
+    def get(self, request):
+        user = self.request.user
+        profile, created = UserProfile.objects.get_or_create(user=user, username=user.username)
+        serializer = ProfileSerializer(profile)
+        return Response(serializer.data)
+    
+    def put(self, request):
+        user = self.request.user
+        try:
+            profile = UserProfile.objects.get(user=user)
+        except UserProfile.DoesNotExist:
+            UserProfile.objects.create(user=user, username=user.username) 
+        serializer = ProfileSerializer(profile, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()

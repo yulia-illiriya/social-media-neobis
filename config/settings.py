@@ -38,8 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'cloudinary',
     
     'dj_rest_auth',
     'oauth2_provider',
@@ -54,6 +56,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_yasg',
     "corsheaders",
+    'django_filters',
     
     'user_profile',
     'threads',    
@@ -211,6 +214,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+# STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticHashedCloudinaryStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -227,8 +231,8 @@ CORS_ALLOW_METHODS = (
 )
 
 
-CORS_ALLOWED_ORIGINS = ['*']
-CSRF_TRUSTED_ORIGINS = ['*']
+# CORS_ALLOWED_ORIGINS = ['*']
+# CSRF_TRUSTED_ORIGINS = ['*']
 
 # send_mail(
 #     'Test Subject',

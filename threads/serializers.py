@@ -1,4 +1,5 @@
 from rest_framework import serializers
+# from cloudinary_storage.storage import 
 
 from threads.models import Photo, Thread, Like, Quote
 from user_profile.serializers import UserSerializer, SimpleProfileSerializer
@@ -25,7 +26,7 @@ class ThreadSerializer(serializers.ModelSerializer):
         author = self.context['request'].user
         # Проверка на количество фото (не больше четырех)
         if "photo":            
-            photos_data = validated_data.pop('photo', [])
+            photos_data = validated_data.pop('photo')
             if len(photos_data) > 4:
                 raise serializers.ValidationError("Максимум 4 фотографии разрешены")
             for photo_data in photos_data:
