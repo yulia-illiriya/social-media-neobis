@@ -19,6 +19,7 @@ class UserManager(BaseUserManager):
         user = self.model(
                 email=email,
                 username=username,
+                is_active=True,
                 **extra_fields
             )
         

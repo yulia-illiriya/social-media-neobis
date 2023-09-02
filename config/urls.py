@@ -26,7 +26,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),    
     path('api/login/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/user/', include('user_profile.urls')),    
-    path('api/thread/', include('threads.urls'))
+    path('api/thread/', include('threads.urls')),
+    path('auth/', include('drf_social_oauth2.urls', namespace='drf')),
+    path('accounts/', include('allauth.urls'), name='socialaccount_signup'),
 ]
 
 urlpatterns += swagger_urls

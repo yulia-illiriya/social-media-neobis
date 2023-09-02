@@ -16,6 +16,8 @@ from .views import (
     FollowerView,
     RequestUserListView,
     ProfileDetailAPIView,
+    WhoFollowedByView,
+    UsersFollowerView,
     # UserFollowersViewSet,
     # PendingRequestView,
     # FollowUnfollowView
@@ -42,9 +44,9 @@ urlpatterns = [
     path('pending-requests/', RequestUserListView.as_view(), name='requests'),
     path('pending-requests/<int:pk>/<str:action>/', RequestUserView.as_view(), name='accept'),
     path('who-following-by-me/', FollowView.as_view(), name='following'),
-    path('who-follow-me/', FollowerView.as_view(), name="follow-me")
-    # path('followers/', UserFollowersView.as_view(), name='followers'),
-    # path('follow/<int:user_id>/', FollowUnfollowView.as_view({'post': 'create', 'delete': 'destroy'}), name='follow'),
+    path('who-follow-me/', FollowerView.as_view(), name="follow-me"),
+    path('followers/<str:username>/', UsersFollowerView.as_view(), name='followers'),
+    path('subscription/<str:username>/', WhoFollowedByView.as_view(), name='follow'),
     # path('pending-requests/', PendingRequestView.as_view({'get': 'list'}), name='pending-requests'),
     # path('who_follow_me/', UserFollowersViewSet.as_view({'get': 'list'})),
     # path('who_follow_me/<int:follower_id>/', UserFollowersViewSet.as_view({'delete': 'destroy', 'get': 'retrieve',})),

@@ -37,10 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.messages',
-    'cloudinary_storage',
+    'django.contrib.messages',    
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'cloudinary_storage',
     'cloudinary',
     
     'dj_rest_auth',
@@ -102,11 +102,13 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': config('CLOUD_NAME'),
-    'API_KEY': config('CLOUD_API_KEY'),
-    'API_SECRET': config('CLOUD_API_SECRET'),
+    'API_KEY': config('API_KEY'),
+    'API_SECRET': config('API_SECRET'),
 }
 
+MEDIA_URL = '/media/'
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases

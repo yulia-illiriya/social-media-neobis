@@ -1,11 +1,15 @@
 from django.db import models
 from user_profile.models import User
+from cloudinary.models import CloudinaryField
+from cloudinary_storage.storage import VideoMediaCloudinaryStorage
+from cloudinary_storage.validators import validate_video
     
 
 class Thread(models.Model):
     content = models.CharField("Текст", max_length=280)
     author = models.ForeignKey(User, verbose_name="Автор", on_delete=models.CASCADE)
-    video = models.URLField("Видео", null=True, blank=True)  
+    video = models.FileField("Видео", null=True, blank=True, storage=VideoMediaCloudinaryStorage(),
+                              validators=[validate_video])  
     likes = models.PositiveBigIntegerField("Лайки", blank=True, null=True, default=0)
     created = models.DateTimeField("Время поста", auto_now_add=True)
     repost = models.ForeignKey("Thread", verbose_name="Repost", on_delete=models.CASCADE, null=True, blank=True)    
@@ -19,7 +23,7 @@ class Thread(models.Model):
     
     
 class Photo(models.Model):
-    photo = models.ImageField(upload_to='threads/%Y/%m/%d/')
+    photo = models.ImageField(upload_to='images/')
     thread = models.ForeignKey(Thread, verbose_name="Thread", on_delete=models.CASCADE)
     
     class Meta:

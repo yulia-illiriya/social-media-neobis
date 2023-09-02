@@ -1,5 +1,13 @@
 from django.urls import path, include
-from threads.views import ThreadView, AllFeedView, CreateThreadView, UserThreadList, UserThreadListAPIView
+from threads.views import (
+    ThreadView, 
+    AllFeedView, 
+    CreateThreadView, 
+    UserThreadList, 
+    UserThreadListAPIView, 
+    PhotoUploadView,
+    LikeView
+)
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -12,6 +20,8 @@ urlpatterns = [
     path('create-thread/', CreateThreadView.as_view({'post':'create'}), name='create-thread'),
     path('thread/<int:pk>/', CreateThreadView.as_view({'get':'retrieve', 'delete': 'destroy'}), name='thread'),
     path('user-thread/', UserThreadList.as_view(), name='thread-list'),
-    path('user-threads-list/<str:username>/', UserThreadListAPIView.as_view(), name='user-thread-list')
+    path('user-threads-list/<str:username>/', UserThreadListAPIView.as_view(), name='user-thread-list'),
+    path('upload/', PhotoUploadView.as_view(), name="photo-upload" ),
+    path('like/<int:pk>', LikeView.as_view(), name='like')
 ]
 

@@ -52,14 +52,35 @@ class ProfileAPIViewList(generics.ListAPIView):
     
 
 class ProfileDetailAPIView(generics.RetrieveAPIView):
+    
+    """
+    Можно посмотреть профайл пользователя. Только метод get.
+    
+    """
+    
     permission_classes = [IsAuthenticated,]
     serializer_class = ProfileSerializer
     lookup_field = 'username'
     
     queryset = UserProfile.objects.all()  # Set the queryset to fetch all profiles
+    
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        # Обновление количества подписок
+        following_count = Follower.objects.filter(user=instance.user, pending_request=True).count()
+        followers_count = Follower.objects.filter(follows=instance.user, pending_request=True).count()
+        
+        instance.number_of_following = following_count
+        instance.number_of_followers = followers_count
+        instance.save()
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def get_queryset(self):
         return self.queryset.filter(username=self.kwargs[self.lookup_field])
+    
 
 class ProfileAPIView(APIView):
     
@@ -251,19 +272,19 @@ class GoogleLoginView(SocialLoginView):
 
 class FollowUserView(APIView):
     
-    """Можно подписаться и отписаться, а также посмотреть список активных подписок"""
+    """Можно подписаться и отписаться"""
     
     queryset = Follower.objects.all()
     serializer_class = UserFollowSerializer
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        following = Follower.objects.filter(user=request.user, pending_request=True)
-        followers = Follower.objects.filter(follows=request.user, pending_request=True)
+    # def get(self, request):
+    #     following = Follower.objects.filter(user=request.user, pending_request=True)
+    #     followers = Follower.objects.filter(follows=request.user, pending_request=True)
 
-        following_serializer = UserFollowSerializer(following, many=True)
-        followers_serializer = UserFollowSerializer(followers, many=True)
-        return Response({ "success": True, "following": following_serializer.data, "followers": followers_serializer.data })
+    #     following_serializer = UserFollowSerializer(following, many=True)
+    #     followers_serializer = UserFollowSerializer(followers, many=True)
+    #     return Response({ "success": True, "following": following_serializer.data, "followers": followers_serializer.data })
 
 
     def post(self, request, pk):
@@ -305,8 +326,29 @@ class FollowView(APIView):
         following_serializer = FollowSerializer(following, many=True)
         # followers_serializer = UserFollowSerializer(followers, many=True)
         return Response({ "success": True, "following": following_serializer.data})
-    
 
+
+class WhoFollowedByView(APIView):
+    
+    """Посмотреть подписки юзера с заданным юзернеймом"""
+    
+    queryset = Follower.objects.all()
+    serializer_class = FollowSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, username):
+        
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({"success": False, "message": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND)
+
+        following = Follower.objects.filter(user=user, pending_request=True)
+        following_serializer = FollowSerializer(following, many=True)
+
+        return Response({"success": True, "following": following_serializer.data})
+    
+    
 class FollowerView(APIView):
     
     """Посмотреть своих подписчиков"""
@@ -321,6 +363,27 @@ class FollowerView(APIView):
         followers_serializer = FollowerSerializer(followers, many=True)
         return Response({ "success": True, "following": followers_serializer.data})
 
+
+class UsersFollowerView(APIView):
+    
+    """Посмотреть подписчиков юзера с заданным юзернеймом"""
+    
+    queryset = Follower.objects.all()
+    serializer_class = FollowerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, username):
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({"success": False, "message": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND)
+
+        followers = Follower.objects.filter(follows=user, pending_request=True)
+        following_serializer = FollowSerializer(followers, many=True)
+
+        followers_serializer = FollowerSerializer(followers, many=True)
+        return Response({ "success": True, "following": followers_serializer.data})
+    
 
 class RequestUserListView(APIView):
     
