@@ -32,6 +32,12 @@ class SimpleProfileSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = ['username', 'name', 'photo',]
         
+
+class PhotoProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['photo',]
+        
         
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -66,7 +72,7 @@ class OTPSerializer(serializers.Serializer):
 
 class PasswordResetSerializer(serializers.Serializer):
     
-    new_passsword = serializers.CharField(min_length=8)
+    new_password = serializers.CharField(min_length=8)
     confirm_password = serializers.CharField(min_length=8)
     
     class Meta:

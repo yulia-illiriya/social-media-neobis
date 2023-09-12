@@ -42,7 +42,7 @@ class Video(models.Model):
         verbose_name_plural = "videos"
 
     def __str__(self):
-        return f'{self.id} {self.author}'
+        return f'{self.id}'
         
         
 class Quote(models.Model):

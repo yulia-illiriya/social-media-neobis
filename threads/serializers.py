@@ -4,6 +4,7 @@ from rest_framework import serializers
 from threads.models import Photo, Thread, Like, Quote
 from user_profile.serializers import UserSerializer, SimpleProfileSerializer
 from cloudinary.uploader import upload
+from moviepy.editor import VideoFileClip
 
 
 from rest_framework import serializers
@@ -11,12 +12,14 @@ from .models import Thread, Photo, Video
 
 
 class PhotoSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Photo
-        fields = ('photo',)
+        fields = ('photo', 'thread')
         
         
 class VideoSerializer(serializers.ModelSerializer):
+    video = serializers.FileField()
     class Meta:
         model = Video
         fields = ('video',)
@@ -24,11 +27,11 @@ class VideoSerializer(serializers.ModelSerializer):
 
 class ThreadSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField()
-    photos=PhotoSerializer(many=True, source='photo_set', required=False)    
-
+    photos= PhotoSerializer(many=True, source='photo_set', required=False)
+    
     class Meta:
         model = Thread
-        fields = ('id', 'content', 'author', 'likes', 'created', 'photos')
+        fields = ('id', 'content', 'author', 'likes', 'created', 'photos',)
         read_only_fields = ('created', 'likes')
 
     def create(self, validated_data):
@@ -46,24 +49,34 @@ class ThreadSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Максимум 4 фотографии разрешены')
         return photos
     
-    
+   
 class ThreadWithVideoSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField()
-    video = VideoSerializer(required=False, source="video")
+    videodata = VideoSerializer(required=False, many=False)
 
     class Meta:
         model = Thread
-        fields = ('id', 'content', 'author', 'video', 'likes', 'created')
+        fields = ('id', 'content', 'author', 'videodata', 'likes', 'created')
         read_only_fields = ('created', 'likes')
-
+        
     def create(self, validated_data):
         author = self.context['request'].user
-        video_data = validated_data.pop('video', [])
+        print(validated_data)
+        video = validated_data.pop('videodata', [])
+        print(video)
         thread = Thread.objects.create(**validated_data, author=author)
-
-        Video.objects.create(thread=thread, **video_data)
+        Video.objects.create(video=video, thread=thread)
             
         return thread
+
+    # def create(self, validated_data):
+    #     author = self.context['request'].user
+    #     video_data = validated_data.pop('video', {})
+    #     thread = Thread.objects.create(**validated_data, author=author)
+
+    #     Video.objects.create(thread=thread, **video_data)
+            
+    #     return thread
 
 
 class SimpleThreadSerializer(serializers.ModelSerializer):
@@ -72,7 +85,7 @@ class SimpleThreadSerializer(serializers.ModelSerializer):
     
     author = serializers.StringRelatedField()
     photos=PhotoSerializer(many=True, source='photo_set', required=False)
-    video = VideoSerializer(required=False, source="video")    
+    video = VideoSerializer(required=False)    
 
     class Meta:
         model = Thread

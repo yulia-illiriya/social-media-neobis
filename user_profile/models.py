@@ -42,7 +42,7 @@ class UserProfile(models.Model):
     )
     username = models.CharField(_('Username'))
     name = models.CharField("Name", max_length=100)
-    surname = models.CharField("Surname", max_length=100)
+    surname = models.CharField("Surname", max_length=100, blank=True)
     photo = models.ImageField(upload_to='users/%Y/%m/%d/', blank=True, null=True)
     bio = models.CharField(_('Bio'), max_length=500, null=True, blank=True)
     is_private = models.BooleanField(_('Private'), default=False, db_index=True)

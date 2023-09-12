@@ -1,9 +1,16 @@
 from django.shortcuts import render
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from rest_framework import generics, viewsets, status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from cloudinary.uploader import upload
+from moviepy.editor import VideoFileClip
+import os
+import tempfile
 
 from threads.serializers import (
     ThreadSerializer, 
@@ -13,12 +20,14 @@ from threads.serializers import (
     LikeSerializer, 
     RepostSerializer, 
     CommentSerializer, 
-    SimpleThreadSerializer
+    SimpleThreadSerializer,
+    VideoSerializer
 )
-from threads.models import Thread, Photo, Quote, Like, User
+from threads.models import Thread, Photo, Quote, Like, User, Video
 from user_profile.models import Follower
 from user_profile.permissions import CanAccessPrivateThreads
 from threads.permissions import IsOwnerOrReadOnly
+from threads.utils import compress_and_upload_video, compress_and_upload_image
 
 from rest_framework.parsers import MultiPartParser, JSONParser, FormParser
 import cloudinary.uploader
@@ -52,40 +61,103 @@ class CreateThreadView(viewsets.ModelViewSet):
     parser_classes = (
         MultiPartParser,
         JSONParser,
+        FormParser
     )
     
     def get_serializer_class(self):
         # Проверяем наличие фото и видео в запросе
         if 'photos' in self.request.data:
             return ThreadSerializer
-        elif 'video' in self.request.data:
+        elif 'videodata' in self.request.data:
             return ThreadWithVideoSerializer
         else:
             return ThreadSerializer
+        
+    def create(self, request, *args, **kwargs):
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(data=request.data, context={'request': request})
+        print(request.user)
+        print(request.data)
+        serializer.is_valid(raise_exception=True)
+        print(serializer)
+        thread = serializer.save()
+        
+        video_file = request.data.get('videodata')
+        photos = request.data.get('photos')
+        
+        if video_file:
+            videodata = compress_and_upload_video(video_file)
+            print(videodata)
+            
+        if photos:
+            new_photos = []
+            for photo in photos:
+                photo_url = compress_and_upload_image(photo)
+                new_photos.append(photo_url)
+            photos = new_photos
+        
+        serializer.save()
+            
+        print(serializer.data)      
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class PhotoUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, format=None):
-        serializer = PhotoSerializer(data=request.data)
+        print(request.data)
+        
+        # Преобразуем строку thread_id в целое число
+        thread_id = int(request.data["thread_id"])
+
+        # Создаем словарь данных для сериализации
+        data = {'photo': request.data["photo"], 'thread_id': thread_id}
+        serializer = PhotoSerializer(data=data)
 
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    # @staticmethod
-    # def post(request):
-    #     photos = request.data.get('photos')
 
-    #     for photo in photos:
-    #         photos_data = cloudinary.uploader.upload(photo)
-    #         return Response({
-    #             'status': 'success',
-    #             'data': photos_data,
-    #         }, status=201)
+# def compress_and_upload_video(video_file):
+#     temp_video_dir = tempfile.mkdtemp()
+#     # Указываем путь к загруженному видео файлу
     
+#     # Сжимаем видео
+#     input_path = video_file.temporary_file_path()
+#     compressed_video_path = os.path.join(temp_video_dir, "compressed_video.mp4")
+#     # Сжимаем видео
+#     video_clip = VideoFileClip(input_path)
+#     compressed_clip = video_clip.resize(width=640)  # Пример сжатия до ширины 640 пикселей, можно настроить как вам нужно
+    
+#     compressed_clip.write_videofile(compressed_video_path, codec="libx264")
+    
+#     # Загружаем сжатое видео в Cloudinary
+#     compressed_video_upload = upload(compressed_video_path, resource_type="video")
+
+#     # Получаем URL загруженного сжатого видео из Cloudinary
+#     video_url = compressed_video_upload["secure_url"]
+#     os.remove(compressed_video_path)
+
+#     return video_url
+
+
+class VideoUploadView(APIView):
+    permission_classes = [IsAuthenticated,]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, format=None):
+        video_file = request.data['video']
+
+        # Сжимаем видео и загружаем его в Cloudinary
+        compressed_video_url = compress_and_upload_video(video_file)
+
+        return Response({'compressed_video_url': compressed_video_url}, status=status.HTTP_201_CREATED)
+
+        
     
 class UserThreadList(generics.ListCreateAPIView):
     
@@ -140,19 +212,29 @@ class AllFeedView(generics.ListAPIView):
     лента всех тредов, включая репосты и цитаты.
     не включены авторы с приватным профилем
     """
-    
+    swagger_fake_view = True
+    @swagger_auto_schema(operation_description="Метода GET",
+        manual_parameters=[],
+        responses={status.HTTP_200_OK: openapi.Response('Описание успешного ответа', example={
+                    "threads": [SimpleThreadSerializer],
+                    "quotes": [QuoteSerializer],
+                    "reposts": [RepostSerializer]
+                })},) 
     def list(self, request, *args, **kwags):
         
         threads = Thread.objects.filter(comment=None, author__userprofile__is_private=False)
 
         quotes = Quote.objects.filter(       
-            who_quoted__userprofile__is_private=False
+            Q(who_quoted__userprofile__is_private=False) & Q(is_repost=False)
         )
+        
+        reposts = Quote.objects.filter(is_repost=True)
     
         thread_serializer = ThreadSerializer(threads, many=True)
         quote_serializer = QuoteSerializer(quotes, many=True)
+        reposts = RepostSerializer(reposts, many=True)
 
-        combined_data = thread_serializer.data + quote_serializer.data
+        combined_data = thread_serializer.data + quote_serializer.data + reposts.data
 
         return Response(combined_data, status=status.HTTP_200_OK)
     

@@ -10,7 +10,8 @@ from threads.views import (
     QuoteViewSet,
     RepostViewSet,
     CommentView,
-    ThreadWithCommentsView
+    ThreadWithCommentsView,
+    VideoUploadView
 )
 from rest_framework.routers import DefaultRouter
 
@@ -33,6 +34,7 @@ urlpatterns = [
     path('quote/<int:pk>/', QuoteViewSet.as_view({"post": "create", "get": "retrieve", "delete": "destroy"}), name='quote'),
     path('repost/<int:pk>', RepostViewSet.as_view({"post": "create", "get": "retrieve", "delete": "destroy"}), name='repost'),
     path('comment/<int:parent_thread_id>/', CommentView.as_view({"post": "create", "get": "retrieve", "delete": "destroy"}), name='add-comment'),
-    path('thread/thread-with-comments/<int:thread_pk>/', ThreadWithCommentsView.as_view({'get': 'retrieve'}), name="thread-with-comments")
+    path('thread/thread-with-comments/<int:thread_pk>/', ThreadWithCommentsView.as_view({'get': 'retrieve'}), name="thread-with-comments"),
+    path('upload-video/', VideoUploadView.as_view(), name='upload-video')
 ]
 

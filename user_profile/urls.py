@@ -18,6 +18,7 @@ from .views import (
     ProfileDetailAPIView,
     WhoFollowedByView,
     UsersFollowerView,
+    UserAvatarUpload
     # UserFollowersViewSet,
     # PendingRequestView,
     # FollowUnfollowView
@@ -35,7 +36,7 @@ urlpatterns = [
     path('users/<int:pk>/', UserViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update'}), name='user-detail'),
     path('forgot_password/', SendPasswordResetEmailView.as_view(), name="forgot_password"),
     path('otp_verificaton/', EnterOTPCodeView.as_view(), name='verify'),
-    path('reset_password/', UpdatePasswordView.as_view(), name='reset-password'),
+    path('reset_password/<user_id>/', UpdatePasswordView.as_view(), name='reset-password'),
     path('login/', RememberMeTokenRefreshView.as_view(), name='remember_me'),
     path('logout/', LogoutView.as_view(), name='auth_logout'),
     path('google/', GoogleLoginView.as_view(),  name='google'),
@@ -47,6 +48,7 @@ urlpatterns = [
     path('who-follow-me/', FollowerView.as_view(), name="follow-me"),
     path('followers/<str:username>/', UsersFollowerView.as_view(), name='followers'),
     path('subscription/<str:username>/', WhoFollowedByView.as_view(), name='follow'),
+    path('me/update-profile-photo/', UserAvatarUpload.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='upload-avatar')
     # path('pending-requests/', PendingRequestView.as_view({'get': 'list'}), name='pending-requests'),
     # path('who_follow_me/', UserFollowersViewSet.as_view({'get': 'list'})),
     # path('who_follow_me/<int:follower_id>/', UserFollowersViewSet.as_view({'delete': 'destroy', 'get': 'retrieve',})),

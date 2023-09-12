@@ -14,9 +14,12 @@ services:
 
     ports:
       - "5432:5432"
-     
+
     volumes:
-      - "./postgres:/var/lib/postgresql/data"
+      - postgres-data:/var/lib/postgresql/data
+
+    restart: always
+
 
   backend:
     build: .
@@ -37,6 +40,9 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+
+volumes:
+  postgres-data:
 
 
       
