@@ -12,15 +12,12 @@ services:
 
     container_name: database
 
-    ports:
-      - "5432:5432"
-
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
 
     restart: always
 
-
+ 
   backend:
     build: .
     container_name: thread
@@ -42,7 +39,7 @@ services:
       - "6379:6379"
 
 volumes:
-  postgres-data:
+  pgdata:
 
 
       

@@ -11,7 +11,8 @@ from django.core.files.images import get_image_dimensions
 
 class ProfileSerializer(serializers.ModelSerializer):
     number_of_followers = serializers.ReadOnlyField()
-    photo = serializers.ImageField(required=False, allow_null=True)
+    number_of_following = serializers.ReadOnlyField()
+    photo = serializers.ImageField(required=False, allow_null=True)      
     
     def validate_photo(self, photo):
         if photo:
@@ -25,6 +26,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['user', 'username', 'name', 'photo', 'bio', 'is_private', 'number_of_followers', 'number_of_following']
+        read_only_fields = ['user', 'number_of_followers', 'number_of_following']
         
         
 class SimpleProfileSerializer(serializers.ModelSerializer):

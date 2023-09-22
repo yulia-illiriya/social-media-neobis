@@ -40,6 +40,7 @@ from user_profile.serializers import (
                                     PhotoProfileSerializer
                                     )
 from user_profile.models import UserProfile, User, PasswordReset, Follower
+from user_profile.paginations import CustomLimitOffsetPagination
 from config import settings
 from rest_framework.parsers import MultiPartParser, JSONParser, FormParser
 
@@ -50,6 +51,7 @@ class ProfileAPIViewList(generics.ListAPIView):
     queryset = UserProfile.objects.all()
     filter_backends = [filters.SearchFilter]
     serializer_class = ProfileSerializer
+    pagination_class = CustomLimitOffsetPagination
     search_fields = ['username',]    
     
 
@@ -61,7 +63,7 @@ class ProfileDetailAPIView(generics.RetrieveAPIView):
     """
     
     permission_classes = [IsAuthenticated,]
-    serializer_class = ProfileSerializer
+    serializer_class = ProfileSerializer    
     lookup_field = 'username'
     
     queryset = UserProfile.objects.all()  # Set the queryset to fetch all profiles
@@ -84,25 +86,34 @@ class ProfileDetailAPIView(generics.RetrieveAPIView):
         return self.queryset.filter(username=self.kwargs[self.lookup_field])
     
 
-class ProfileAPIView(APIView):
-    
+class ProfileAPIView(APIView):    
+  
     """
     Модель для вывода и обновления профиля. Ничего в нее передавать не надо, 
     юзер берется из запроса и выводится его личный профиль
     """
     
+    @swagger_auto_schema(responses={200: ProfileSerializer})
     def get(self, request):
         user = self.request.user
         profile, created = UserProfile.objects.get_or_create(user=user, username=user.username)
         serializer = ProfileSerializer(profile)
         return Response(serializer.data)
     
+    @swagger_auto_schema(responses={200: ProfileSerializer})
     def put(self, request):
         user = self.request.user
         try:
             profile = UserProfile.objects.get(user=user)
         except UserProfile.DoesNotExist:
-            UserProfile.objects.create(user=user, username=user.username) 
+            UserProfile.objects.create(user=user, username=user.username)
+            
+        new_username = request.data.get("username")
+        
+        if new_username != user.username:
+            user.username = new_username
+            user.save()
+            
         serializer = ProfileSerializer(profile, data=request.data)
         if serializer.is_valid():
             serializer.save()

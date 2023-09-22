@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'allauth.account',
     'dj_rest_auth.registration',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',    
+    'allauth.socialaccount.providers.google',   
+    'channels', 
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
@@ -96,6 +97,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
@@ -143,6 +145,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
 
@@ -152,6 +155,14 @@ SIMPLE_JWT = {
    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=14)
 }
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 REST_USE_JWT = True
 JWT_AUTH_COOKIE = 'access-token'
@@ -234,14 +245,4 @@ CORS_ALLOW_METHODS = (
     "PUT",
 )
 
-
-# CORS_ALLOWED_ORIGINS = ['*']
-# CSRF_TRUSTED_ORIGINS = ['*']
-
-# send_mail(
-#     'Test Subject',
-#     'Test message body',
-#     'nerozniksilliriya@yandex.ru',
-#     ['yulia.illiriya@gmail.com'],
-#     fail_silently=False,
-#     )
+DJANGO_CHANNELS_REST_API = {}

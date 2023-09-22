@@ -206,37 +206,38 @@ class UserThreadListAPIView(generics.ListAPIView):
 #         return queryset
 
 
-class AllFeedView(generics.ListAPIView):
+class AllFeedView(APIView):
     
     """
     лента всех тредов, включая репосты и цитаты.
     не включены авторы с приватным профилем
     """
-    swagger_fake_view = True
-    @swagger_auto_schema(operation_description="Метода GET",
-        manual_parameters=[],
-        responses={status.HTTP_200_OK: openapi.Response('Описание успешного ответа', example={
-                    "threads": [SimpleThreadSerializer],
-                    "quotes": [QuoteSerializer],
-                    "reposts": [RepostSerializer]
-                })},) 
-    def list(self, request, *args, **kwags):
-        
+    
+    # @swagger_auto_schema(operation_description="Метод GET",
+    #     manual_parameters=[],
+    #     responses={status.HTTP_200_OK: openapi.Response('Описание успешного ответа', example={
+    #                 "threads": [SimpleThreadSerializer],
+    #                 "quotes": [QuoteSerializer],
+    #                 "reposts": [RepostSerializer]
+    #             })},)   
+    def get(self, request, *args, **kwags):
         threads = Thread.objects.filter(comment=None, author__userprofile__is_private=False)
-
-        quotes = Quote.objects.filter(       
+        quotes = Quote.objects.filter(
             Q(who_quoted__userprofile__is_private=False) & Q(is_repost=False)
         )
-        
         reposts = Quote.objects.filter(is_repost=True)
-    
+
         thread_serializer = ThreadSerializer(threads, many=True)
         quote_serializer = QuoteSerializer(quotes, many=True)
-        reposts = RepostSerializer(reposts, many=True)
+        repost_serializer = RepostSerializer(reposts, many=True)
 
-        combined_data = thread_serializer.data + quote_serializer.data + reposts.data
+        response_data = {
+            "threads": thread_serializer.data,
+            "quotes": quote_serializer.data,
+            "reposts": repost_serializer.data,
+        }
 
-        return Response(combined_data, status=status.HTTP_200_OK)
+        return Response(response_data, status=status.HTTP_200_OK)
     
 
 class LikeView(APIView):   
