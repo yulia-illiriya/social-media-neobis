@@ -1,5 +1,6 @@
 from cloudinary.uploader import upload
 from moviepy.editor import VideoFileClip
+import io
 import os
 import tempfile
 from PIL import Image
@@ -24,6 +25,7 @@ def compress_and_upload_video(video_file):
     os.remove(compressed_video_path)
 
     return video_url
+
 
 
 def compress_and_upload_image(image):

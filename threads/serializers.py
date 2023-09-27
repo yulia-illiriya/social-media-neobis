@@ -15,11 +15,11 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Photo
-        fields = ('photo', 'thread')
+        fields = ('photo',)
         
         
 class VideoSerializer(serializers.ModelSerializer):
-    video = serializers.FileField()
+    # video = serializers.FileField()
     class Meta:
         model = Video
         fields = ('video',)
@@ -52,31 +52,40 @@ class ThreadSerializer(serializers.ModelSerializer):
    
 class ThreadWithVideoSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField()
-    videodata = VideoSerializer(required=False, many=False)
+    videos = VideoSerializer(many=True, required=False)
+    # video = serializers.SerializerMethodField(required=False)
 
     class Meta:
         model = Thread
-        fields = ('id', 'content', 'author', 'videodata', 'likes', 'created')
+        fields = ['id', 'content', 'author', 'videos', 'likes', 'created']
         read_only_fields = ('created', 'likes')
+    
+    # def get_video(self, obj):
+    #     request = self.context.get('request')
         
-    def create(self, validated_data):
-        author = self.context['request'].user
-        print(validated_data)
-        video = validated_data.pop('videodata', [])
-        print(video)
-        thread = Thread.objects.create(**validated_data, author=author)
-        Video.objects.create(video=video, thread=thread)
-            
-        return thread
+    #     if request and request.method == 'GET':
+    #         videos = Video.objects.filter(thread=obj)
+    #         video_serializer = VideoSerializer(videos, many=False)
+    #         return video_serializer.data
+    #     return None
+        
 
-    # def create(self, validated_data):
-    #     author = self.context['request'].user
-    #     video_data = validated_data.pop('video', {})
-    #     thread = Thread.objects.create(**validated_data, author=author)
+class WholeThreadSerializer(serializers.ModelSerializer):
+    author = serializers.StringRelatedField()
+    photos = PhotoSerializer(many=True, source='photo_set', required=False)
+    videos = serializers.SerializerMethodField(required=False)
 
-    #     Video.objects.create(thread=thread, **video_data)
-            
-    #     return thread
+    def get_videos(self, obj):
+        videos = Video.objects.filter(thread=obj)
+        print(videos)
+        video_serializer = VideoSerializer(videos, many=True)
+        return video_serializer.data
+    
+    class Meta:
+        model = Thread
+        fields = ['id', 'content', 'author', 'likes', 'created', 'photos', 'videos']
+        read_only_fields = ('created', 'likes', 'author')
+   
 
 
 class SimpleThreadSerializer(serializers.ModelSerializer):

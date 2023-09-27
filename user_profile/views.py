@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect
 from django.core.mail import send_mail
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import IntegrityError
 
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -17,6 +18,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError, APIException
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework import filters
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from dj_rest_auth.registration.serializers import SocialLoginSerializer
 from dj_rest_auth.registration.views import SocialLoginView
@@ -92,6 +94,8 @@ class ProfileAPIView(APIView):
     Модель для вывода и обновления профиля. Ничего в нее передавать не надо, 
     юзер берется из запроса и выводится его личный профиль
     """
+    authentication_classes = [JWTAuthentication,]
+    permission_classes = [IsAuthenticated,]
     
     @swagger_auto_schema(responses={200: ProfileSerializer})
     def get(self, request):
@@ -111,10 +115,19 @@ class ProfileAPIView(APIView):
         new_username = request.data.get("username")
         
         if new_username != user.username:
-            user.username = new_username
-            user.save()
-            
-        serializer = ProfileSerializer(profile, data=request.data)
+            try:                    
+                user.username = new_username
+                user.save()
+            except IntegrityError:
+                return Response({"message": "Этот юзернейм уже занят, выберите другой."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = ProfileSerializer(profile, data=request.data, partial=True)
+        
+        if request.data.get("name"):
+            name = name
+        else:
+            name = user.username
+        
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -296,15 +309,6 @@ class FollowUserView(APIView):
     serializer_class = UserFollowSerializer
     permission_classes = [IsAuthenticated]
 
-    # def get(self, request):
-    #     following = Follower.objects.filter(user=request.user, pending_request=True)
-    #     followers = Follower.objects.filter(follows=request.user, pending_request=True)
-
-    #     following_serializer = UserFollowSerializer(following, many=True)
-    #     followers_serializer = UserFollowSerializer(followers, many=True)
-    #     return Response({ "success": True, "following": following_serializer.data, "followers": followers_serializer.data })
-
-
     def post(self, request, pk):
         try:
             following_user = User.objects.get(id=pk)
@@ -337,8 +341,9 @@ class FollowView(APIView):
     serializer_class = FollowSerializer
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def get(self, request):        
         following = Follower.objects.filter(user=request.user, pending_request=True)
+        
         # followers = Follower.objects.filter(follows=request.user, pending_request=True)
 
         following_serializer = FollowSerializer(following, many=True)
@@ -465,9 +470,9 @@ class UserAvatarUpload(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser]
     serializer_class = PhotoProfileSerializer
     queryset = UserProfile.objects.all()
+    permission_classes = [IsAuthenticated,]
     
     def get_object(self):
-        # Получить пользователя из запроса
         return self.request.user
     
     def retrieve(self, request, *args, **kwargs):

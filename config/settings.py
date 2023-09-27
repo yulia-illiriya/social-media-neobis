@@ -246,3 +246,16 @@ CORS_ALLOW_METHODS = (
 )
 
 DJANGO_CHANNELS_REST_API = {}
+
+SWAGGER_SETTINGS = {
+   'SECURITY_DEFINITIONS': {
+      'Basic': {
+            'type': 'basic'
+      },
+      'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+      }
+   }
+}

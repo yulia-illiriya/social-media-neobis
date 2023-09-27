@@ -31,7 +31,7 @@ class Photo(models.Model):
         
 
 class Video(models.Model):
-    thread = models.ForeignKey(Thread, on_delete=models.CASCADE, verbose_name="Thread", related_name="video")
+    thread = models.OneToOneField(Thread, on_delete=models.CASCADE, verbose_name="Thread", blank=True, null=True)
     video = models.FileField(upload_to='video/', storage=VideoMediaCloudinaryStorage(),
                               validators=[validate_video])
     created_at = models.DateTimeField(auto_now_add=True)
