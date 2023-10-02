@@ -12,10 +12,10 @@ from .models import Thread, Photo, Video
 
 
 class PhotoSerializer(serializers.ModelSerializer):
-
+    
     class Meta:
         model = Photo
-        fields = ('photo',)
+        fields = ['photo',]
         
         
 class VideoSerializer(serializers.ModelSerializer):
@@ -27,22 +27,18 @@ class VideoSerializer(serializers.ModelSerializer):
 
 class ThreadSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField()
-    photos= PhotoSerializer(many=True, source='photo_set', required=False)
+    photos = serializers.SerializerMethodField(required=False)
     
     class Meta:
         model = Thread
         fields = ('id', 'content', 'author', 'likes', 'created', 'photos',)
         read_only_fields = ('created', 'likes')
-
-    def create(self, validated_data):
-        author = self.context['request'].user
-        photos_data = validated_data.pop('photos', [])
-        thread = Thread.objects.create(**validated_data, author=author)
-
-        for photo in photos_data:
-            Photo.objects.create(thread=thread, **photo)
-            
-        return thread
+        
+    def get_photos(self, obj):
+        photos = Photo.objects.filter(thread=obj)
+        print(photos)
+        photo_serializer = PhotoSerializer(photos, many=True)
+        return photo_serializer.data
 
     def validate_photos(self, photos):
         if len(photos) > 4:
@@ -79,7 +75,8 @@ class WholeThreadSerializer(serializers.ModelSerializer):
         videos = Video.objects.filter(thread=obj)
         print(videos)
         video_serializer = VideoSerializer(videos, many=True)
-        return video_serializer.data
+        return video_serializer.data    
+
     
     class Meta:
         model = Thread

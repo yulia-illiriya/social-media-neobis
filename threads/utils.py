@@ -1,4 +1,5 @@
 from cloudinary.uploader import upload
+import cloudinary
 from moviepy.editor import VideoFileClip
 import io
 import os
@@ -8,7 +9,6 @@ from PIL import Image
 def compress_and_upload_video(video_file):
     temp_video_dir = tempfile.mkdtemp()
        
-    # Сжимаем видео
     input_path = video_file.temporary_file_path()
     compressed_video_path = os.path.join(temp_video_dir, "compressed_video.mp4")    
     video_clip = VideoFileClip(input_path)
@@ -30,30 +30,14 @@ def compress_and_upload_video(video_file):
 
 def compress_and_upload_image(image):
     try:
-        img = Image.open(image)
-        image_format = img.format
-
-        if img.width > 600:
-            img.thumbnail((600, 600), Image.ANTIALIAS)
-
-        with tempfile.NamedTemporaryFile(encoding="utf8", errors='ignore', delete=False, suffix=".jpeg") as tmp_image:
-            if image_format:
-                img.save(tmp_image, format=image_format)
-            else:
-                # Если формат не определен, явно указываем JPEG
-                img.save(tmp_image, format="JPEG")
-
-        # Загружаем сжатое изображение в Cloudinary
-        result = upload(tmp_image.name)
-
-        # Возвращаем URL загруженного изображения из Cloudinary
-        return result.get('secure_url')
+        upload_result = upload(image)
+        public_url = upload_result.get("secure_url")
+        transformation = {"width": 600, "crop": "scale"}
+        processed_url = cloudinary.utils.cloudinary_url(public_url, transformation=transformation)
+        return processed_url[1]
+    
     except Exception as e:
-        # Обработка ошибок, которые могут возникнуть при обработке изображения
-        print(f"An error occurred: {str(e)}")
-        return None
-    finally:
-        if 'tmp_image' in locals():
-            # Удаление временного файла
-            tmp_image.close()
-            os.remove(tmp_image.name)
+        return str(e)
+
+
+

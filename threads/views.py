@@ -79,7 +79,6 @@ class CreateThreadView(viewsets.ModelViewSet):
         
     def create(self, request, *args, **kwargs):
         serializer_class = self.get_serializer_class()
-
         serializer = serializer_class(data=request.data, context={'request': request})
         print(request.user)
         print(request.data)
@@ -88,35 +87,31 @@ class CreateThreadView(viewsets.ModelViewSet):
         serializer.validated_data['author'] = request.user
         thread = serializer.save()
         video_file = request.data.get('videos')
-        photos = request.data.get('photos')
+        photos = request.FILES.getlist("photos")
         
         print(video_file)
-              
-        if video_file:
-            # print(video_file)
-            # Получаем размер видео файла в байтах
-            video_size = sys.getsizeof(video_file.read())
-            print(video_size)
-            video_file.seek(0)  # Возвращаем указатель на начало файла
-
-            if video_size <= 2.5 * 1024 * 1024:                
-                video_url = upload(video_file, resource_type='video')
-                videodata = video_url.get('playback_url')
-            else:
-                videodata = compress_and_upload_video(video_file)
-
-            Video.objects.create(video=videodata, thread=thread)
-            
-        if photos:
-            new_photos = []
-            for photo in photos:
-                photo_url = compress_and_upload_image(photo)
-                new_photos.append(photo_url)
-            photos = new_photos
         
-        serializer.save()
-            
-        print(serializer.data)      
+        if request.FILES:            
+            if video_file and photos:
+                return Response(
+                    {"message": "You cannot upload video and photos in one time. Choose only photo or video"}, 
+                    status=status.HTTP_406_NOT_ACCEPTABLE
+                    )
+            elif video_file:            
+                video_size = sys.getsizeof(video_file.read())
+                video_file.seek(0)
+
+                if video_size <= 2.5 * 1024 * 1024:                
+                    video_url = upload(video_file, resource_type='video')
+                    videodata = video_url.get('playback_url')
+                else:
+                    videodata = compress_and_upload_video(video_file)
+                Video.objects.create(video=videodata, thread=thread)            
+            else:
+                for photo in photos:
+                    photo_url = compress_and_upload_image(photo)
+                    print(photo_url)
+                    Photo.objects.create(thread=thread, photo=photo_url)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

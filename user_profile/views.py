@@ -124,9 +124,9 @@ class ProfileAPIView(APIView):
         serializer = ProfileSerializer(profile, data=request.data, partial=True)
         
         if request.data.get("name"):
-            name = name
+            profile.name = request.data["name"]
         else:
-            name = user.username
+            profile.name = user.username
         
         if serializer.is_valid():
             serializer.save()
@@ -478,8 +478,9 @@ class UserAvatarUpload(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         user = request.user
         profile = UserProfile.objects.get(user=user)
-        return super().retrieve(request, *args, **kwargs)
-
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data)
+        
     def update(self, request, *args, **kwargs):
         user = request.user        
         file = request.data['photo']
