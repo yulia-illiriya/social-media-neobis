@@ -28,6 +28,7 @@ from threads.serializers import (
 from threads.models import Thread, Photo, Quote, Like, User, Video
 from user_profile.models import Follower
 from user_profile.permissions import CanAccessPrivateThreads
+from notifications.utils import create_activity
 from threads.permissions import IsOwnerOrReadOnly
 from threads.utils import compress_and_upload_video, compress_and_upload_image
 from cloudinary.uploader import upload
@@ -233,11 +234,12 @@ class LikeView(APIView):
                 like.delete()
                 thread.likes -= 1
                 thread.save()
-                return Response({ "success": True, "message": "unlike thread" })
+                return Response({ "success": True, "message": "unlike thread" }, status=status.HTTP_201_CREATED)
             else:
                 thread.likes += 1
-                thread.save()                         
-                return Response({ "success": True, "message": "like thread" })
+                thread.save()
+                create_activity(user=thread.author, event_type='post_like', message=f'{request.user} liked your thread {thread.pk}')                    
+                return Response({ "success": True, "message": "like thread" }, status=status.HTTP_201_CREATED)
             
         except ObjectDoesNotExist:
             return Response({ "success": False, "message": "user ot thread doesn't exist" })

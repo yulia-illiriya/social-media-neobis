@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from notifications.views import ActivityFeed
 from .yasg import urlpatterns as swagger_urls
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -29,6 +30,7 @@ urlpatterns = [
     path('api/thread/', include('threads.urls')),
     path('auth/', include('drf_social_oauth2.urls', namespace='drf')),
     path('accounts/', include('allauth.urls'), name='socialaccount_signup'),
+    path('activity/', ActivityFeed.as_view(), name='activity')
 ]
 
 urlpatterns += swagger_urls

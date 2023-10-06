@@ -61,7 +61,8 @@ INSTALLED_APPS = [
     'django_filters',
     
     'user_profile',
-    'threads',    
+    'threads',
+    'notifications'
 ]
 
 SITE_ID = 1
@@ -249,9 +250,6 @@ DJANGO_CHANNELS_REST_API = {}
 
 SWAGGER_SETTINGS = {
    'SECURITY_DEFINITIONS': {
-      'Basic': {
-            'type': 'basic'
-      },
       'Bearer': {
             'type': 'apiKey',
             'name': 'Authorization',

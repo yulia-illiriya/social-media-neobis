@@ -45,6 +45,7 @@ from user_profile.models import UserProfile, User, PasswordReset, Follower
 from user_profile.paginations import CustomLimitOffsetPagination
 from config import settings
 from rest_framework.parsers import MultiPartParser, JSONParser, FormParser
+from notifications.utils import create_activity
 
 from django.core.cache import cache
 
@@ -308,29 +309,33 @@ class FollowUserView(APIView):
     queryset = Follower.objects.all()
     serializer_class = UserFollowSerializer
     permission_classes = [IsAuthenticated]
-
+    
     def post(self, request, pk):
         try:
             following_user = User.objects.get(id=pk)
-            is_private = following_user.userprofile.is_private #определяем, профиль приватный или публичный
+            following_user_profile, _ = UserProfile.objects.get_or_create(user=following_user)
+            is_private = following_user_profile.is_private #определяем, профиль приватный или публичный
             follow_user, _ = Follower.objects.get_or_create(user=request.user, follows=following_user)
             if not _:
                 follow_user.delete()
-                return Response({ "success": True, "message": "unfollowed user" })
+                return Response({ "success": True, "message": "unfollowed user" }, status=status.HTTP_204_NO_CONTENT)
             else:
                 print(follow_user)
                 if not is_private:
                     follow_user.pending_request = True
                     follow_user.save()
-                    return Response({ "success": True, "message": "followed user" })
+                    print(type(following_user))
+                    create_activity(user=following_user, event_type='subscription', message=f'Followed by {request.user.username}')
+                    return Response({ "success": True, "message": "followed user" }, status=status.HTTP_201_CREATED)
                 else:
                     follow_user.pending_request = False
                     follow_user.save()
-                    return Response({ "success": True, "message": "request was sent!" })
-
+                    create_activity(following_user, 'subscription_request', f'User {request.user.username} want to follow you')
+                    return Response({ "success": True, "message": "request was sent!" }, status=status.HTTP_202_ACCEPTED)
+            
 
         except ObjectDoesNotExist:
-            return Response({ "success": False, "message": "following user does not exist" })
+            return Response({ "success": False, "message": "following user does not exist" }, status=status.HTTP_404_NOT_FOUND)
     
     
 class FollowView(APIView):
@@ -342,12 +347,8 @@ class FollowView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):        
-        following = Follower.objects.filter(user=request.user, pending_request=True)
-        
-        # followers = Follower.objects.filter(follows=request.user, pending_request=True)
-
+        following = Follower.objects.filter(user=request.user, pending_request=True)        
         following_serializer = FollowSerializer(following, many=True)
-        # followers_serializer = UserFollowSerializer(followers, many=True)
         return Response({ "success": True, "following": following_serializer.data})
 
 
@@ -456,10 +457,10 @@ class RequestUserView(APIView):
             else:
                 pending_request.delete()
                 print(Follower.objects.filter(follows=request.user, user=follow_user))
-                return Response({ "status": "request deleted", "message": "request declined" })
+                return Response({ "status": "request deleted", "message": "request declined"}, status=status.HTTP_202_ACCEPTED)
 
         except ObjectDoesNotExist:
-            return Response({ "success": False, "message": "following user does not exist" })
+            return Response({ "success": False, "message": "following user does not exist"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
