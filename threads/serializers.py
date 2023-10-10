@@ -72,7 +72,7 @@ class WholeThreadSerializer(serializers.ModelSerializer):
     videos = serializers.SerializerMethodField(required=False)
     
     def get_author(self, obj):
-        user_profile = obj.author
+        user_profile = obj.author.userprofile
         user_profile_serializer = UserProfileSerializer(user_profile)
         return user_profile_serializer.data
 
