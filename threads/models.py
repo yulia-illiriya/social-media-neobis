@@ -22,7 +22,7 @@ class Thread(models.Model):
     
     
 class Photo(models.Model):
-    photo = models.ImageField(upload_to='images/')
+    photo = models.URLField()
     thread = models.ForeignKey(Thread, verbose_name="Thread", on_delete=models.CASCADE)
     
     class Meta:        

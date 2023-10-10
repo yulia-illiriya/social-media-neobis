@@ -28,13 +28,27 @@ def compress_and_upload_video(video_file):
 
 
 
+# def compress_and_upload_image(image):
+#     try:
+#         upload_result = upload(image)
+#         public_url = upload_result.get("secure_url")
+#         transformation = {"width": 600, "crop": "scale"}
+#         processed_url = cloudinary.utils.cloudinary_url(public_url, transformation=transformation)
+#         return processed_url[1]
+    
+#     except Exception as e:
+#         return str(e)
+    
+    
 def compress_and_upload_image(image):
     try:
-        upload_result = upload(image)
+        
+        transformation = {"quality": "auto", "fetch_format": "auto", "secure": True}
+        
+        upload_result = upload(image, transformation=transformation)
         public_url = upload_result.get("secure_url")
-        transformation = {"width": 600, "crop": "scale"}
-        processed_url = cloudinary.utils.cloudinary_url(public_url, transformation=transformation)
-        return processed_url[1]
+        
+        return public_url
     
     except Exception as e:
         return str(e)
