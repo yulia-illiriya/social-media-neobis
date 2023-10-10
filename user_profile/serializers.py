@@ -61,8 +61,13 @@ class UserSerializer(serializers.ModelSerializer):
             username=validated_data['username']
         )
         return user
-   
     
+   
+class UserProfileSerializer(serializers.ModelSerializer):   
+    class Meta:
+        model = UserProfile        
+        fields = ['username', 'photo']
+
     
 class PasswordResetEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()

@@ -318,7 +318,7 @@ class FollowUserView(APIView):
             follow_user, _ = Follower.objects.get_or_create(user=request.user, follows=following_user)
             if not _:
                 follow_user.delete()
-                return Response({ "success": True, "message": "unfollowed user" }, status=status.HTTP_204_NO_CONTENT)
+                return Response({ "success": True, "message": "unfollowed user"}, status=status.HTTP_204_NO_CONTENT)
             else:
                 print(follow_user)
                 if not is_private:
@@ -330,7 +330,7 @@ class FollowUserView(APIView):
                 else:
                     follow_user.pending_request = False
                     follow_user.save()
-                    create_activity(following_user, 'subscription_request', f'User {request.user.username} want to follow you')
+                    create_activity(user=following_user, event_type='subscription_request', message=f'User {request.user.username} want to follow you')
                     return Response({ "success": True, "message": "request was sent!" }, status=status.HTTP_202_ACCEPTED)
             
 

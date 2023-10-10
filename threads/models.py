@@ -1,5 +1,5 @@
 from django.db import models
-from user_profile.models import User
+from user_profile.models import User, UserProfile
 from cloudinary.models import CloudinaryField
 from cloudinary_storage.storage import VideoMediaCloudinaryStorage
 from cloudinary_storage.validators import validate_video
@@ -48,7 +48,7 @@ class Video(models.Model):
 class Quote(models.Model):
     additional_text = models.CharField("Текст", max_length=280)
     thread = models.ForeignKey(Thread, verbose_name="Thread", related_name="quote", on_delete=models.CASCADE)
-    reposted_at = models.DateTimeField("Репост сделан в", auto_now_add=True)
+    created = models.DateTimeField("Репост сделан в", auto_now_add=True)
     who_quoted = models.ForeignKey(User, verbose_name="кто процитировал", on_delete=models.CASCADE)
     is_repost = models.BooleanField("Репост или цитата", default=True) #если True, то это репост, если false - цитата
     

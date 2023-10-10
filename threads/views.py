@@ -35,6 +35,8 @@ from cloudinary.uploader import upload
 
 from rest_framework.parsers import MultiPartParser, JSONParser, FormParser
 import cloudinary.uploader
+from django.db.models import F
+from itertools import chain
 
 
 class ThreadView(generics.ListAPIView):
@@ -81,7 +83,6 @@ class CreateThreadView(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer_class = self.get_serializer_class()
         serializer = serializer_class(data=request.data, context={'request': request})
-        print(request.user)
         print(request.data)
         serializer.is_valid(raise_exception=True)
         print(serializer)
@@ -112,7 +113,8 @@ class CreateThreadView(viewsets.ModelViewSet):
                 for photo in photos:
                     photo_url = compress_and_upload_image(photo)
                     print(photo_url)
-                    Photo.objects.create(thread=thread, photo=photo_url)
+                    pho = Photo.objects.create(thread=thread, photo=photo_url)
+                    print(pho.thread, pho.photo)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -189,8 +191,35 @@ class UserThreadListAPIView(generics.ListAPIView):
         return Thread.objects.filter(user__username=username)
     
 
-class AllFeedView(APIView):
+# class AllFeedView(APIView):
     
+#     """
+#     лента всех тредов, включая репосты и цитаты.
+#     не включены авторы с приватным профилем
+#     """
+    
+#     def get(self, request, *args, **kwags):
+#         threads = Thread.objects.filter(comment=None, author__userprofile__is_private=False)
+#         quotes = Quote.objects.filter(
+#             Q(who_quoted__userprofile__is_private=False) & Q(is_repost=False)
+#         )
+#         reposts = Quote.objects.filter(is_repost=True)
+
+#         thread_serializer = WholeThreadSerializer(threads, many=True)
+#         quote_serializer = QuoteSerializer(quotes, many=True)
+#         repost_serializer = RepostSerializer(reposts, many=True)
+
+#         response_data = {
+#             "threads": thread_serializer.data,
+#             "quotes": quote_serializer.data,
+#             "reposts": repost_serializer.data,
+#         }
+
+#         return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+class AllFeedView(APIView):
     """
     лента всех тредов, включая репосты и цитаты.
     не включены авторы с приватным профилем
@@ -203,17 +232,24 @@ class AllFeedView(APIView):
         )
         reposts = Quote.objects.filter(is_repost=True)
 
-        thread_serializer = WholeThreadSerializer(threads, many=True)
-        quote_serializer = QuoteSerializer(quotes, many=True)
-        repost_serializer = RepostSerializer(reposts, many=True)
+        all_items = list(chain(threads, quotes, reposts))        
+        
+        sorted_items = sorted(all_items, key=lambda item: item.created, reverse=True)
 
-        response_data = {
-            "threads": thread_serializer.data,
-            "quotes": quote_serializer.data,
-            "reposts": repost_serializer.data,
-        }
+        serialized_items = []
+        for item in sorted_items:
+            if isinstance(item, Thread):
+                serialized_items.append(WholeThreadSerializer(item).data)
+            elif isinstance(item, Quote) and not item.is_repost:
+                serialized_items.append(QuoteSerializer(item).data)
+            elif isinstance(item, Quote) and item.is_repost:
+                serialized_items.append(RepostSerializer(item).data)
 
-        return Response(response_data, status=status.HTTP_200_OK)
+        # response_data = {
+        #     serialized_items,
+        # }
+
+        return Response(serialized_items, status=status.HTTP_200_OK)
     
 
 class LikeView(APIView):   
