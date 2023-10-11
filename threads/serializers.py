@@ -138,6 +138,6 @@ class RepostSerializer(serializers.ModelSerializer):
         model = Quote
         fields = [
              "thread",
-            "reposted_at",
+            "created",
             "who_quoted",                       
         ]
