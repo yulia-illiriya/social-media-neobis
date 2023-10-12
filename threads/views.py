@@ -188,7 +188,7 @@ class UserThreadListAPIView(generics.ListAPIView):
     
     def get_queryset(self):
         username = self.kwargs['username']  # Получаем значение username из URL
-        return Thread.objects.filter(user__username=username)
+        return Thread.objects.filter(author__username=username)
     
 
 # class AllFeedView(APIView):
@@ -244,10 +244,6 @@ class AllFeedView(APIView):
                 serialized_items.append(QuoteSerializer(item).data)
             elif isinstance(item, Quote) and item.is_repost:
                 serialized_items.append(RepostSerializer(item).data)
-
-        # response_data = {
-        #     serialized_items,
-        # }
 
         return Response(serialized_items, status=status.HTTP_200_OK)
     
