@@ -70,6 +70,7 @@ class WholeThreadSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     photos = PhotoSerializer(many=True, source='photo_set', required=False)
     videos = serializers.SerializerMethodField(required=False)
+    comments = serializers.SerializerMethodField()
     
     def get_author(self, obj):
         user_profile = obj.author.userprofile
@@ -80,10 +81,14 @@ class WholeThreadSerializer(serializers.ModelSerializer):
         videos = Video.objects.filter(thread=obj)
         video_serializer = VideoSerializer(videos, many=True)
         return video_serializer.data
+    
+    def get_comments(self, obj):
+        comments = Thread.objects.filter(comment=obj).count()
+        return comments if comments else 0
         
     class Meta:
         model = Thread
-        fields = ['id', 'content', 'author', 'likes', 'created', 'photos', 'videos']
+        fields = ['id', 'content', 'author', 'likes', 'created', 'photos', 'videos', 'comments']
         read_only_fields = ('created', 'likes', 'author')
    
 
