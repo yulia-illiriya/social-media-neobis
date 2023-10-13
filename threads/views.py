@@ -46,7 +46,7 @@ class ThreadView(generics.ListAPIView):
     """
     
     permission_classes = [IsAuthenticated,]
-    serializer_class = SimpleThreadSerializer
+    serializer_class = WholeThreadSerializer    
     
     def get_queryset(self):
         user = self.request.user
