@@ -124,7 +124,7 @@ class LikeSerializer(serializers.ModelSerializer):
         
         
 class QuoteSerializer(serializers.ModelSerializer):
-    thread = ThreadSerializer()
+    thread = WholeThreadSerializer()
     who_quoted = serializers.StringRelatedField()
     class Meta:
         model = Quote
@@ -135,14 +135,40 @@ class QuoteSerializer(serializers.ModelSerializer):
             "who_quoted", 
             ]
         
+
+class QuoteReadSerializer(serializers.ModelSerializer):
+    who_quoted = UserProfileSerializer()
+    thread = WholeThreadSerializer()
+
+    class Meta:
+        model = Quote
+        fields = [
+            "additional_text",
+            "who_quoted",
+            "thread",
+            "created",
+        ]
+        
         
 class RepostSerializer(serializers.ModelSerializer):
-    thread = ThreadSerializer()
+    thread = WholeThreadSerializer()
     who_quoted = serializers.StringRelatedField()
     class Meta:
         model = Quote
         fields = [
-             "thread",
+            "thread",
+            "created",
+            "who_quoted",                       
+        ]
+
+class RepostReadSerializer(serializers.ModelSerializer):
+    thread = WholeThreadSerializer()
+    who_quoted = UserProfileSerializer()
+    
+    class Meta:
+        model = Quote
+        fields = [
+            "thread",
             "created",
             "who_quoted",                       
         ]

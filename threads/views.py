@@ -23,7 +23,9 @@ from threads.serializers import (
     CommentSerializer, 
     SimpleThreadSerializer,
     VideoSerializer,
-    WholeThreadSerializer
+    WholeThreadSerializer,
+    QuoteReadSerializer,
+    RepostReadSerializer
 )
 from threads.models import Thread, Photo, Quote, Like, User, Video
 from user_profile.models import Follower
@@ -241,9 +243,9 @@ class AllFeedView(APIView):
             if isinstance(item, Thread):
                 serialized_items.append(WholeThreadSerializer(item).data)
             elif isinstance(item, Quote) and not item.is_repost:
-                serialized_items.append(QuoteSerializer(item).data)
+                serialized_items.append(QuoteReadSerializer(item).data)
             elif isinstance(item, Quote) and item.is_repost:
-                serialized_items.append(RepostSerializer(item).data)
+                serialized_items.append(RepostReadSerializer(item).data)
 
         return Response(serialized_items, status=status.HTTP_200_OK)
     
@@ -274,7 +276,7 @@ class LikeView(APIView):
                 return Response({ "success": True, "message": "like thread" }, status=status.HTTP_201_CREATED)
             
         except ObjectDoesNotExist:
-            return Response({ "success": False, "message": "user ot thread doesn't exist" })
+            return Response({ "success": False, "message": "user ot thread doesn't exist" }, status=status.HTTP_404_NOT_FOUND)
         
         
         
@@ -287,6 +289,11 @@ class QuoteViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     queryset = Quote.objects.all()
     serializer_class = QuoteSerializer
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return QuoteReadSerializer        
+        return QuoteSerializer
     
     def create(self, request, pk, *args, **kwargs):
         try:
