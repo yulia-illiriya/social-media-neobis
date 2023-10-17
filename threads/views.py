@@ -346,7 +346,7 @@ class CommentView(viewsets.ModelViewSet):
     """
     
     permission_classes = [IsAuthenticated,]
-    serializer_class = ThreadSerializer
+    serializer_class = WholeThreadSerializer
     queryset = Thread.objects.all()    
     
     def create(self, request, parent_thread_id, *args, **kwargs):
@@ -365,14 +365,13 @@ class CommentView(viewsets.ModelViewSet):
             for photo in photos_data:
                 Photo.objects.create(thread=thread, **photo)
 
-        serializer = ThreadSerializer(thread)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+        serializer = WholeThreadSerializer(thread)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)    
     
 
 
 class ThreadWithCommentsView(viewsets.ReadOnlyModelViewSet):
-    serializer_class = ThreadSerializer
+    serializer_class = WholeThreadSerializer
     queryset = Thread.objects.all()
 
     def retrieve(self, request, thread_pk):
