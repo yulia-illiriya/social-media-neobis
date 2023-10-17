@@ -297,11 +297,11 @@ class QuoteViewSet(viewsets.ModelViewSet):
     
     def create(self, request, pk, *args, **kwargs):
         try:
-            who_added = request.user
+            who_quoted = request.user
             thread = Thread.objects.get(pk=pk)
             is_repost = False
             additional_text = request.data.get('additional_text')            
-            quote, _ = Quote.objects.get_or_create(who_quoted=who_added, thread=thread, is_repost=is_repost, additional_text=additional_text)           
+            quote, _ = Quote.objects.get_or_create(who_quoted=who_quoted, thread=thread, is_repost=is_repost, additional_text=additional_text)           
             
             if not _:
                 return Response({"success": False, "message": "you've already reposted it"})  
@@ -329,10 +329,10 @@ class RepostViewSet(viewsets.ModelViewSet):
     
     def create(self, request, pk, *args, **kwargs):
         try:
-            who_added = request.user
+            who_quoted = request.user
             thread = Thread.objects.get(pk=pk)
             is_repost = True                   
-            quote, _ = Quote.objects.get_or_create(who_added=who_added, thread=thread, is_repost=is_repost)           
+            quote, _ = Quote.objects.get_or_create(who_quoted=who_quoted, thread=thread, is_repost=is_repost)           
             
             if not _:
                 return Response({"success": False, "message": "you've already reposted it"})  
